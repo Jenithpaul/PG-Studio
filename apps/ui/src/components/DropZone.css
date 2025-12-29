@@ -1,0 +1,84 @@
+.drop-zone {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.drop-zone.disabled {
+  pointer-events: none;
+}
+
+.drop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(var(--primary-rgb, 66, 153, 225), 0.15);
+  border: 3px dashed var(--primary-color, #4299e1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: none;
+  animation: pulse-border 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: var(--primary-color, #4299e1);
+    background: rgba(var(--primary-rgb, 66, 153, 225), 0.15);
+  }
+  50% {
+    border-color: var(--primary-hover, #3182ce);
+    background: rgba(var(--primary-rgb, 66, 153, 225), 0.25);
+  }
+}
+
+.drop-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px;
+  background: var(--bg-primary, white);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.drop-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--primary-color, #4299e1);
+  animation: bounce 0.6s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.drop-message span {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #1a202c);
+}
+
+/* Dark theme support */
+[data-theme="dark"] .drop-overlay {
+  background: rgba(66, 153, 225, 0.2);
+}
+
+[data-theme="dark"] .drop-message {
+  background: var(--bg-secondary, #2d3748);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .drop-message span {
+  color: var(--text-primary, #f7fafc);
+}

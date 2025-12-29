@@ -1,0 +1,18 @@
+{
+  "name": "@pg-studio/layout-engine",
+  "version": "1.0.0",
+  "description": "Layout algorithms for PostgreSQL schema visualization",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@pg-studio/shared": "1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4"
+  }
+}

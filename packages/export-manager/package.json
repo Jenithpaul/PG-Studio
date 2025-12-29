@@ -1,0 +1,19 @@
+{
+  "name": "@pg-studio/export-manager",
+  "version": "1.0.0",
+  "description": "Export functionality for PostgreSQL schema visualizations",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@pg-studio/shared": "1.0.0",
+    "@pg-studio/layout-engine": "1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4"
+  }
+}

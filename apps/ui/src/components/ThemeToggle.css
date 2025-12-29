@@ -1,0 +1,61 @@
+/* Theme Toggle - Supabase Style */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  outline: none;
+}
+
+.theme-toggle:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.theme-toggle:focus-visible {
+  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--brand-primary);
+}
+
+.theme-toggle svg {
+  transition: transform var(--transition-base);
+}
+
+.theme-toggle:hover svg {
+  transform: rotate(15deg);
+}
+
+/* Size Variants */
+.theme-toggle-sm {
+  padding: var(--space-1);
+}
+
+.theme-toggle-sm svg {
+  width: 14px;
+  height: 14px;
+}
+
+.theme-toggle-md {
+  padding: var(--space-2);
+}
+
+.theme-toggle-md svg {
+  width: 16px;
+  height: 16px;
+}
+
+.theme-toggle-lg {
+  padding: var(--space-3);
+}
+
+.theme-toggle-lg svg {
+  width: 20px;
+  height: 20px;
+}

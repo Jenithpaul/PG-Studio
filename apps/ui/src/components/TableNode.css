@@ -1,0 +1,222 @@
+/* ========================================
+   TABLE NODE - SUPABASE STYLE
+   ======================================== */
+
+.table-node {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    min-width: 240px;
+    max-width: 320px;
+    overflow: hidden;
+    transition: all var(--transition-base);
+    box-shadow: var(--shadow-sm);
+}
+
+.table-node:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-md);
+}
+
+.table-node.selected {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 2px var(--brand-primary-muted), var(--shadow-md);
+}
+
+.table-node.highlighted {
+    border-color: var(--brand-primary);
+    box-shadow: var(--shadow-glow), var(--shadow-md);
+}
+
+.table-node.dimmed {
+    opacity: 0.35;
+}
+
+/* Table Header */
+.table-node-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border-muted);
+}
+
+.table-node-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-overlay);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+}
+
+.table-node-icon svg {
+    width: 12px;
+    height: 12px;
+}
+
+.table-node-title {
+    flex: 1;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.table-node-title.highlighted {
+    color: var(--brand-primary);
+}
+
+.table-node-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: var(--font-medium);
+    color: var(--text-tertiary);
+    background: var(--bg-subtle);
+    border-radius: var(--radius-full);
+}
+
+/* Table Columns */
+.table-node-columns {
+    padding: var(--space-2);
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.table-column-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-2);
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast);
+    position: relative;
+}
+
+.table-column-row:hover {
+    background: var(--bg-highlight);
+}
+
+/* Column Icons */
+.column-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.column-icon.pk {
+    color: var(--brand-warning);
+}
+
+.column-icon.fk {
+    color: var(--brand-info);
+}
+
+.column-icon svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* Column Name */
+.column-name {
+    flex: 1;
+    font-size: var(--text-xs);
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.column-name.pk {
+    font-weight: var(--font-semibold);
+}
+
+/* Column Type */
+.column-type {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    padding: 1px 4px;
+    background: var(--bg-subtle);
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+}
+
+/* Nullable indicator */
+.column-nullable {
+    font-size: 9px;
+    font-weight: var(--font-medium);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Connection Handles */
+.table-node .react-flow__handle {
+    width: 8px;
+    height: 8px;
+    border: 2px solid var(--bg-surface);
+    transition: all var(--transition-fast);
+}
+
+.table-node .react-flow__handle-left {
+    left: -4px;
+}
+
+.table-node .react-flow__handle-right {
+    right: -4px;
+}
+
+.table-node .react-flow__handle.pk-handle {
+    background: var(--brand-warning);
+}
+
+.table-node .react-flow__handle.fk-handle {
+    background: var(--brand-info);
+}
+
+.table-node .react-flow__handle.default-handle {
+    background: var(--text-muted);
+}
+
+.table-node:hover .react-flow__handle {
+    transform: scale(1.2);
+}
+
+/* Search Highlight */
+.search-highlight {
+    background: var(--brand-primary-muted);
+    color: var(--brand-primary);
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+/* Scrollbar for columns */
+.table-node-columns::-webkit-scrollbar {
+    width: 4px;
+}
+
+.table-node-columns::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.table-node-columns::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: var(--radius-full);
+}
+
+.table-node-columns::-webkit-scrollbar-thumb:hover {
+    background: var(--border-hover);
+}

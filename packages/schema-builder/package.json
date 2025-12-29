@@ -1,0 +1,20 @@
+{
+  "name": "@pg-studio/schema-builder",
+  "version": "1.0.0",
+  "description": "Multi-source schema merging and conflict resolution",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@pg-studio/shared": "1.0.0",
+    "@pg-studio/introspection": "1.0.0",
+    "@pg-studio/schema-parser": "1.0.0",
+    "@pg-studio/file-scanner": "1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

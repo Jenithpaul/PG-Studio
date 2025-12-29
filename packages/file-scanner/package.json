@@ -1,0 +1,19 @@
+{
+  "name": "@pg-studio/file-scanner",
+  "version": "1.0.0",
+  "description": "File system scanning and project detection for PostgreSQL schema files",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@pg-studio/shared": "1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

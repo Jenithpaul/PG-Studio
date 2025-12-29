@@ -1,0 +1,121 @@
+/* Additional base styles that complement the Supabase theme */
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Demo info badge in TopBar */
+.demo-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--brand-primary-muted);
+  border: 1px solid var(--brand-primary);
+  border-radius: var(--radius-md);
+}
+
+.demo-badge {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--brand-primary);
+}
+
+/* Empty state styling */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  height: 100%;
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.empty-state-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  color: var(--text-muted);
+}
+
+.empty-state-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.empty-state-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  max-width: 400px;
+  line-height: var(--leading-relaxed);
+}
+
+/* Main canvas area - offset for TopBar */
+.react-flow-wrapper {
+  width: 100%;
+  height: calc(100vh - 52px);
+  margin-top: 52px;
+  position: relative;
+}
+
+/* Move ReactFlow controls up */
+.react-flow-wrapper .react-flow__controls {
+  bottom: 80px !important;
+  left: 16px !important;
+}
+
+.react-flow-wrapper .react-flow__minimap {
+  bottom: 80px !important;
+  right: 16px !important;
+}
+
+/* Override for link colors */
+a {
+  color: var(--brand-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--brand-primary-hover);
+  text-decoration: underline;
+}
+
+/* Code/monospace text */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 2px 6px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+/* Selection styling */
+::selection {
+  background: var(--brand-primary-muted);
+  color: var(--text-primary);
+}
+
+/* Focus outline for accessibility */
+:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
