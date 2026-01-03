@@ -126,7 +126,7 @@ export const Hero = () => {
               justifyContent: 'center',
               flexWrap: 'wrap'
             }}>
-              <a href="/PG-Studio/PG-Studio-v1.0.0.zip" className="btn btn-primary" style={{ padding: '18px 36px', fontSize: '18px', borderRadius: '100px' }}>
+              <a href="/PG-Studio/PG-Studio-Setup.exe" download className="btn btn-primary" style={{ padding: '18px 36px', fontSize: '18px', borderRadius: '100px' }}>
                 <Download size={22} />
                 Download for Windows
               </a>
