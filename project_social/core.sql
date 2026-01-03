@@ -1,0 +1,16 @@
+CREATE TABLE profiles (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    bio TEXT,
+    avatar_url TEXT,
+    website TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE posts (
+    id SERIAL PRIMARY KEY,
+    author_id INTEGER REFERENCES profiles(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    media_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

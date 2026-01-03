@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { LayoutAlgorithm } from '@pg-studio/layout-engine';
 import ThemeToggle from './ThemeToggle';
-import './ThemeToggle.css';
 import './TopBar.css';
 
 type DataSource = 'db' | 'folder' | 'demo';
@@ -10,202 +9,98 @@ type TopBarProps = {
   onVisualize: (source: DataSource, value: string) => void;
   onAutoLayout: (algorithm: LayoutAlgorithm) => void;
   onZoomToFit: () => void;
-  onExport: () => void;
-  hasSchema: boolean;
   onBackToDashboard?: () => void;
+  onImport?: () => void;
+  onSave?: () => void;
+  onShare?: () => void;
 };
 
-const TopBar = ({ onVisualize, onAutoLayout, onZoomToFit, onExport, hasSchema, onBackToDashboard }: TopBarProps) => {
-  const [source, setSource] = React.useState<DataSource>('demo');
-  const [connectionString, setConnectionString] = React.useState('postgresql://postgres:postgres@localhost:5432/postgres');
-  const [folderPath, setFolderPath] = React.useState('');
-  const [layoutAlgorithm, setLayoutAlgorithm] = React.useState<LayoutAlgorithm>('hierarchical');
-
-  const handleSelectFolder = async () => {
-    if (window.electron) {
-      const path = await window.electron.openDialog();
-      if (path) {
-        setFolderPath(path);
-      }
-    } else {
-      alert('Folder selection is only available in the desktop app.');
-    }
-  };
-
-  const handleVisualize = () => {
-    if (source === 'db') {
-      onVisualize('db', connectionString);
-    } else if (source === 'demo') {
-      onVisualize('demo', 'Demo Data');
-    } else {
-      if (folderPath) {
-        onVisualize('folder', folderPath);
-      } else {
-        handleSelectFolder();
-      }
-    }
-  };
-
-  const handleAutoLayout = () => {
-    onAutoLayout(layoutAlgorithm);
-  };
-
-  const renderSourceInput = () => {
-    switch (source) {
-      case 'db':
-        return (
-          <input
-            type="text"
-            value={connectionString}
-            onChange={e => setConnectionString(e.target.value)}
-            placeholder="postgresql://user:pass@host:port/database"
-            className="connection-input"
-            spellCheck={false}
-          />
-        );
-      case 'folder':
-        return (
-          <button 
-            onClick={handleSelectFolder}
-            className={`folder-select-btn ${folderPath ? 'has-path' : ''}`}
-          >
-            {folderPath || 'Select project folder...'}
-          </button>
-        );
-      case 'demo':
-        return (
-          <div className="demo-info">
-            <span className="demo-badge">Sample e-commerce schema</span>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
+const TopBar = ({ onVisualize, onAutoLayout, onZoomToFit, onBackToDashboard, onImport, onSave, onShare }: TopBarProps) => { 
+  const [url, setUrl] = useState('postgres://localhost:5432/postgres');
 
   return (
-    <div className="top-bar">
-      {/* Logo */}
-      {/* Logo */}
-      <div 
-        className={`top-bar-logo ${onBackToDashboard ? 'clickable' : ''}`}
-        onClick={onBackToDashboard}
-        title={onBackToDashboard ? "Back to Dashboard" : undefined}
-      >
-        {onBackToDashboard && (
-          <div className="top-bar-back-icon">
+    <div className="visualizer-topbar">
+      {/* Left: Back Button + URL Input */}
+      <div className="topbar-left">
+         <button 
+           className="icon-button back-button" 
+           onClick={onBackToDashboard} 
+           title="Back to Dashboard"
+         >
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+             </svg>
+         </button>
+         
+         <div className="url-bar">
+             <div className="url-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <ellipse cx="12" cy="5" rx="9" ry="3" />
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                </svg>
+             </div>
+             <input 
+                type="text" 
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="url-input"
+             />
+             <button className="url-action-btn" onClick={() => onVisualize('db', url)}>
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                     <path d="M5 12h14M12 5l7 7-7 7" />
+                 </svg>
+             </button>
+         </div>
+      </div>
+
+      {/* Right: Actions */}
+      <div className="topbar-right">
+         <button className="text-button" onClick={onImport}>
+            Import
+         </button>
+         
+         <button className="text-button primary" onClick={onSave}>
+            Save
+         </button>
+         
+         <button className="text-button share-btn" onClick={onShare} title="Share / Export">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
+               <circle cx="18" cy="5" r="3"/>
+               <circle cx="6" cy="12" r="3"/>
+               <circle cx="18" cy="19" r="3"/>
+               <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
             </svg>
-          </div>
-        )}
-        <div className="top-bar-logo-icon">PG</div>
-        <div className="top-bar-logo-text">
-          <span>PG</span> Studio
-        </div>
-      </div>
+            Share
+         </button>
+         
+         <div className="divider-vertical"></div>
 
-      {/* Data Source Section */}
-      <div className="top-bar-section source-section">
-        <select 
-          value={source} 
-          onChange={e => setSource(e.target.value as DataSource)}
-          className="source-select"
-        >
-          <option value="demo">Demo Mode</option>
-          <option value="db">Live Database</option>
-          <option value="folder">SQL Folder</option>
-        </select>
-
-        {renderSourceInput()}
-
-        <button onClick={handleVisualize} className="visualize-btn">
-          Visualize
-        </button>
-      </div>
-
-      {/* Separator */}
-      <div className="separator" />
-
-      {/* Layout Section */}
-      <div className="top-bar-section">
-        <select 
-          value={layoutAlgorithm} 
-          onChange={e => setLayoutAlgorithm(e.target.value as LayoutAlgorithm)}
-          disabled={!hasSchema}
-          title="Select layout algorithm"
-          className="layout-select"
-        >
-          <option value="hierarchical">Hierarchical</option>
-          <option value="force_directed">Force Directed</option>
-          <option value="grid">Grid</option>
-          <option value="circular">Circular</option>
-        </select>
-
-        <button 
-          onClick={handleAutoLayout}
-          disabled={!hasSchema}
-          title="Apply auto-layout to arrange tables"
-          className={`action-btn layout-btn ${hasSchema ? 'enabled' : ''}`}
-        >
-          <LayoutIcon />
-          <span>Layout</span>
-        </button>
-
-        <button 
-          onClick={onZoomToFit}
-          disabled={!hasSchema}
-          title="Zoom to fit all tables in view"
-          className={`action-btn fit-btn ${hasSchema ? 'enabled' : ''}`}
-        >
-          <FitIcon />
-          <span>Fit</span>
-        </button>
-
-        <button 
-          onClick={onExport}
-          disabled={!hasSchema}
-          title="Export schema visualization"
-          className={`action-btn export-btn ${hasSchema ? 'enabled' : ''}`}
-        >
-          <ExportIcon />
-          <span>Export</span>
-        </button>
-      </div>
-
-      {/* Theme Toggle */}
-      <div className="top-bar-section">
-        <ThemeToggle size="md" />
+         <button className="icon-button" onClick={() => onAutoLayout('hierarchical')} title="Auto Layout">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+         </button>
+         
+         <button className="icon-button" onClick={onZoomToFit} title="Fit View">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 3h6v6" />
+                <path d="M9 21H3v-6" />
+                <path d="M21 3l-7 7" />
+                <path d="M3 21l7-7" />
+            </svg>
+         </button>
+         
+         <div className="divider-vertical"></div>
+         
+         <ThemeToggle size="sm" />
       </div>
     </div>
   );
 };
-
-// Icon Components
-const LayoutIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="7" height="7" rx="1" />
-    <rect x="14" y="3" width="7" height="7" rx="1" />
-    <rect x="3" y="14" width="7" height="7" rx="1" />
-    <rect x="14" y="14" width="7" height="7" rx="1" />
-  </svg>
-);
-
-const FitIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M15 3h6v6" />
-    <path d="M9 21H3v-6" />
-    <path d="M21 3l-7 7" />
-    <path d="M3 21l7-7" />
-  </svg>
-);
-
-const ExportIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <polyline points="17 8 12 3 7 8" />
-    <line x1="12" y1="3" x2="12" y2="15" />
-  </svg>
-);
 
 export default TopBar;

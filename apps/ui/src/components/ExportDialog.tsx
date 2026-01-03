@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import type { Schema } from '@pg-studio/shared';
 import type { LayoutResult } from '@pg-studio/layout-engine';
-import type { ExportManager, ExportFormat, ExportProgress, ImageExportOptions, SvgExportOptions, SqlExportOptions } from '@pg-studio/export-manager';
+import type { ExportManager, ExportFormat, ExportProgress } from '@pg-studio/export-manager';
+import { toPng, toSvg } from 'html-to-image';
 import './ExportDialog.css';
 
 interface ExportDialogProps {
@@ -18,57 +19,87 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
   onClose,
   schema,
   layout,
-  canvas,
-  exportManager
 }) => {
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
+  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('json');
   const [progress, setProgress] = useState<ExportProgress | null>(null);
-  const [exportResult, setExportResult] = useState<{ success: boolean; message: string; downloadUrl?: string } | null>(null);
+  const [exportResult, setExportResult] = useState<{ success: boolean; message: string } | null>(null);
   
   // Export options
-  const [imageOptions, setImageOptions] = useState<ImageExportOptions>({
+  const [imageOptions, setImageOptions] = useState({
     width: 1920,
     height: 1080,
     scale: 2,
-    backgroundColor: '#0F0F0F',
     includeBackground: true
   });
   
-  const [svgOptions, setSvgOptions] = useState<SvgExportOptions>({
-    includeStyles: true,
-    embedFonts: false,
-    viewBox: { x: 0, y: 0, width: 1920, height: 1080 }
-  });
-  
-  const [sqlOptions, setSqlOptions] = useState<SqlExportOptions>({
+  const [sqlOptions, setSqlOptions] = useState({
     includeConstraints: true,
-    includeIndexes: false,
     includeComments: true,
-    dialectTarget: 'postgresql'
   });
 
   const formatOptions = [
-    {
-      value: 'png' as ExportFormat,
-      name: 'PNG Image',
-      description: 'High-quality raster image'
-    },
-    {
-      value: 'svg' as ExportFormat,
-      name: 'SVG Vector',
-      description: 'Scalable vector graphics'
-    },
-    {
-      value: 'json' as ExportFormat,
-      name: 'JSON Data',
-      description: 'Schema and layout data'
-    },
-    {
-      value: 'sql' as ExportFormat,
-      name: 'SQL DDL',
-      description: 'CREATE TABLE statements'
-    }
+    { value: 'png' as ExportFormat, name: 'PNG Image', description: 'High-quality raster image', icon: '🖼️' },
+    { value: 'svg' as ExportFormat, name: 'SVG Vector', description: 'Scalable vector graphics', icon: '📐' },
+    { value: 'json' as ExportFormat, name: 'JSON Data', description: 'Schema and layout data', icon: '📄' },
+    { value: 'sql' as ExportFormat, name: 'SQL DDL', description: 'CREATE TABLE statements', icon: '🗃️' }
   ];
+
+  const downloadFile = (content: string | Blob, filename: string, mimeType: string) => {
+    const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const generateSql = (schema: Schema): string => {
+    let sql = `-- PostgreSQL Schema Export\n-- Generated: ${new Date().toISOString()}\n\n`;
+    
+    for (const table of schema.tables) {
+      sql += `CREATE TABLE "${table.name}" (\n`;
+      
+      const columnDefs = table.columns.map(col => {
+        let def = `  "${col.name}" ${col.type.toUpperCase()}`;
+        if (col.isPrimaryKey) def += ' PRIMARY KEY';
+        if (!col.isNullable && !col.isPrimaryKey) def += ' NOT NULL';
+        return def;
+      });
+      
+      sql += columnDefs.join(',\n');
+      sql += '\n);\n\n';
+      
+      // Foreign keys from relations
+      if (sqlOptions.includeConstraints && schema.relations) {
+        const tableRelations = schema.relations.filter(r => r.sourceTable === table.id);
+        for (const rel of tableRelations) {
+          sql += `ALTER TABLE "${table.name}" ADD CONSTRAINT "fk_${table.name}_${rel.sourceColumn}" `;
+          sql += `FOREIGN KEY ("${rel.sourceColumn}") REFERENCES "${rel.targetTable}"("${rel.targetColumn}");\n`;
+        }
+        if (tableRelations.length > 0) sql += '\n';
+      }
+    }
+    
+    return sql;
+  };
+
+  const generateJson = (schema: Schema, layout: LayoutResult): string => {
+    return JSON.stringify({
+      exportedAt: new Date().toISOString(),
+      schema: {
+        tables: schema.tables,
+        relations: schema.relations
+      },
+      layout: {
+        nodes: layout.nodes,
+        edges: layout.edges,
+        bounds: layout.bounds
+      }
+    }, null, 2);
+  };
 
   const handleExport = useCallback(async () => {
     if (!schema || !layout) {
@@ -80,86 +111,77 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
     setExportResult(null);
 
     try {
-      let result: Blob | string;
-      let filename: string;
-      let mimeType: string;
-
+      const timestamp = Date.now();
       setProgress({ stage: 'processing', progress: 30, message: 'Processing data...' });
+      
+      await new Promise(r => setTimeout(r, 300)); // Brief delay for UX
 
       switch (selectedFormat) {
-        case 'png':
-          if (!canvas) {
-            throw new Error('Canvas not available for PNG export');
+        case 'png': {
+          setProgress({ stage: 'processing', progress: 50, message: 'Capturing diagram...' });
+          const flowWrapper = document.querySelector('.react-flow-wrapper');
+          if (flowWrapper) {
+            const dataUrl = await toPng(flowWrapper as HTMLElement, {
+              backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-app').trim() || '#0f0f0f',
+              pixelRatio: imageOptions.scale,
+              width: imageOptions.width,
+              height: imageOptions.height,
+            });
+            const link = document.createElement('a');
+            link.download = `schema-${timestamp}.png`;
+            link.href = dataUrl;
+            link.click();
+          } else {
+            throw new Error('Diagram container not found');
           }
-          result = await exportManager.exportAsPng(canvas, imageOptions);
-          filename = `schema-${Date.now()}.png`;
-          mimeType = 'image/png';
           break;
+        }
 
-        case 'svg':
-          result = await exportManager.exportAsSvg(schema, layout, svgOptions);
-          filename = `schema-${Date.now()}.svg`;
-          mimeType = 'image/svg+xml';
+        case 'svg': {
+          setProgress({ stage: 'processing', progress: 50, message: 'Generating SVG...' });
+          const flowWrapper = document.querySelector('.react-flow-wrapper');
+          if (flowWrapper) {
+            const svgData = await toSvg(flowWrapper as HTMLElement, {
+              backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-app').trim() || '#0f0f0f',
+            });
+            const link = document.createElement('a');
+            link.download = `schema-${timestamp}.svg`;
+            link.href = svgData;
+            link.click();
+          } else {
+            throw new Error('Diagram container not found');
+          }
           break;
+        }
 
-        case 'json':
-          result = await exportManager.exportAsJson(schema, layout);
-          filename = `schema-${Date.now()}.json`;
-          mimeType = 'application/json';
+        case 'json': {
+          const jsonContent = generateJson(schema, layout);
+          downloadFile(jsonContent, `schema-${timestamp}.json`, 'application/json');
           break;
+        }
 
-        case 'sql':
-          result = await exportManager.exportAsSql(schema, sqlOptions);
-          filename = `schema-${Date.now()}.sql`;
-          mimeType = 'text/sql';
+        case 'sql': {
+          const sqlContent = generateSql(schema);
+          downloadFile(sqlContent, `schema-${timestamp}.sql`, 'text/sql');
           break;
-
-        default:
-          throw new Error(`Unsupported export format: ${selectedFormat}`);
+        }
       }
 
-      setProgress({ stage: 'finalizing', progress: 80, message: 'Finalizing export...' });
+      setProgress({ stage: 'complete', progress: 100, message: 'Export completed!' });
+      setExportResult({ success: true, message: `Successfully exported as ${selectedFormat.toUpperCase()}` });
 
-      // Create download link
-      let blob: Blob;
-      if (result instanceof Blob) {
-        blob = result;
-      } else {
-        blob = new Blob([result], { type: mimeType });
-      }
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      setProgress({ stage: 'complete', progress: 100, message: 'Export completed successfully!' });
-      setExportResult({ 
-        success: true, 
-        message: `Successfully exported as ${filename}`,
-        downloadUrl: url
-      });
-
-      // Auto-close after success
       setTimeout(() => {
         onClose();
         setProgress(null);
         setExportResult(null);
-      }, 2000);
+      }, 1500);
 
     } catch (error) {
       console.error('Export failed:', error);
-      setProgress({ stage: 'error', progress: 0, message: 'Export failed', error: String(error) });
-      setExportResult({ 
-        success: false, 
-        message: `Export failed: ${error}` 
-      });
+      setProgress({ stage: 'error', progress: 0, message: 'Export failed' });
+      setExportResult({ success: false, message: `Export failed: ${error}` });
     }
-  }, [schema, layout, canvas, selectedFormat, imageOptions, svgOptions, sqlOptions, exportManager, onClose]);
+  }, [schema, layout, selectedFormat, imageOptions, sqlOptions, onClose]);
 
   const handleClose = useCallback(() => {
     setProgress(null);
@@ -182,7 +204,7 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
 
         {/* Format Selection */}
         <div className="export-format-section">
-          <label className="export-format-label">Export Format</label>
+          <label className="export-format-label">Choose Format</label>
           <div className="export-format-options">
             {formatOptions.map(option => (
               <label 
@@ -197,7 +219,7 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
                   onChange={e => setSelectedFormat(e.target.value as ExportFormat)}
                 />
                 <div className="export-format-info">
-                  <div className="export-format-name">{option.name}</div>
+                  <div className="export-format-name">{option.icon} {option.name}</div>
                   <div className="export-format-desc">{option.description}</div>
                 </div>
               </label>
@@ -205,10 +227,10 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
           </div>
         </div>
 
-        {/* Format-specific Options */}
+        {/* PNG Options */}
         {selectedFormat === 'png' && (
           <div className="export-options-section">
-            <label className="export-format-label">PNG Options</label>
+            <label className="export-format-label">Image Options</label>
             <div className="export-options-grid">
               <div className="export-option-group">
                 <label className="export-option-label">Width (px)</label>
@@ -240,44 +262,31 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
                   onChange={e => setImageOptions(prev => ({ ...prev, scale: parseFloat(e.target.value) || 2 }))}
                 />
               </div>
-              <div className="export-option-group">
-                <label className="export-option-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={imageOptions.includeBackground}
-                    onChange={e => setImageOptions(prev => ({ ...prev, includeBackground: e.target.checked }))}
-                  />
-                  Include background
-                </label>
-              </div>
             </div>
           </div>
         )}
 
+        {/* SQL Options */}
         {selectedFormat === 'sql' && (
           <div className="export-options-section">
             <label className="export-format-label">SQL Options</label>
-            <div className="export-options-grid">
-              <div className="export-option-group">
-                <label className="export-option-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={sqlOptions.includeConstraints}
-                    onChange={e => setSqlOptions(prev => ({ ...prev, includeConstraints: e.target.checked }))}
-                  />
-                  Include foreign key constraints
-                </label>
-              </div>
-              <div className="export-option-group">
-                <label className="export-option-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={sqlOptions.includeComments}
-                    onChange={e => setSqlOptions(prev => ({ ...prev, includeComments: e.target.checked }))}
-                  />
-                  Include comments
-                </label>
-              </div>
+            <div className="export-options-grid" style={{ gridTemplateColumns: '1fr' }}>
+              <label className="export-option-checkbox">
+                <input
+                  type="checkbox"
+                  checked={sqlOptions.includeConstraints}
+                  onChange={e => setSqlOptions(prev => ({ ...prev, includeConstraints: e.target.checked }))}
+                />
+                Include foreign key constraints
+              </label>
+              <label className="export-option-checkbox">
+                <input
+                  type="checkbox"
+                  checked={sqlOptions.includeComments}
+                  onChange={e => setSqlOptions(prev => ({ ...prev, includeComments: e.target.checked }))}
+                />
+                Include table comments
+              </label>
             </div>
           </div>
         )}
@@ -286,10 +295,7 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
         {progress && (
           <div className="export-progress">
             <div className="export-progress-bar">
-              <div 
-                className="export-progress-fill" 
-                style={{ width: `${progress.progress}%` }}
-              />
+              <div className="export-progress-fill" style={{ width: `${progress.progress}%` }} />
             </div>
             <div className="export-progress-text">{progress.message}</div>
           </div>
@@ -304,18 +310,10 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
 
         {/* Actions */}
         <div className="export-dialog-actions">
-          <button 
-            className="export-dialog-btn cancel" 
-            onClick={handleClose}
-            disabled={isExporting}
-          >
+          <button className="export-dialog-btn cancel" onClick={handleClose} disabled={isExporting}>
             Cancel
           </button>
-          <button 
-            className="export-dialog-btn export" 
-            onClick={handleExport}
-            disabled={!canExport}
-          >
+          <button className="export-dialog-btn export" onClick={handleExport} disabled={!canExport}>
             {isExporting ? 'Exporting...' : 'Export'}
           </button>
         </div>

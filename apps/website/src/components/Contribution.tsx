@@ -1,60 +1,123 @@
-import { Github, MessageSquare, Coffee, Terminal } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { GitPullRequest, Star, Heart } from 'lucide-react';
 
 export const Contribution = () => {
   return (
-    <section id="contribute" style={{ padding: '100px 0', background: 'white' }}>
-      <div className="container">
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '4rem',
-          alignItems: 'center'
-        }}>
-          <div>
-            <h2 style={{ fontSize: '2.5rem', marginBottom: '1.5rem', letterSpacing: '-0.03em' }}>Join the <span style={{ color: 'var(--accent-color)' }}>Open Source</span> Community</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '2.5rem', fontSize: '1.1rem' }}>
-              PG Studio is built by developers for developers. We believe in the power of community-driven software and welcome all contributions.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{ color: 'var(--accent-color)' }}><Terminal size={20} /></div>
-                <span style={{ fontWeight: 500, fontSize: '0.95rem' }}>Fix bugs & implement new features</span>
-              </div>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{ color: 'var(--accent-color)' }}><MessageSquare size={20} /></div>
-                <span style={{ fontWeight: 500, fontSize: '0.95rem' }}>Suggest improvements and report issues</span>
-              </div>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{ color: 'var(--accent-color)' }}><Coffee size={20} /></div>
-                <span style={{ fontWeight: 500, fontSize: '0.95rem' }}>Support the project development</span>
-              </div>
-            </div>
+    <section id="contribute" className="section" style={{ 
+      background: 'var(--bg-primary)',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Background Glow */}
+      <div className="glow-orb glow-green" style={{
+        width: '500px',
+        height: '500px',
+        bottom: '-200px',
+        left: '50%',
+        transform: 'translateX(-50%)'
+      }} />
+
+      <div className="container" style={{ position: 'relative', zIndex: 1 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          style={{
+            maxWidth: '800px',
+            margin: '0 auto',
+            textAlign: 'center'
+          }}
+        >
+          <div style={{
+            width: '80px',
+            height: '80px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-primary)',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 32px',
+            fontSize: '40px'
+          }}>
+            <Heart size={36} style={{ color: 'var(--accent-primary)' }} />
           </div>
 
-          <div style={{
-            padding: '3rem',
-            background: '#fafafa',
-            borderRadius: '24px',
-            border: '1px solid var(--card-border)',
-            textAlign: 'center'
+          <h2 style={{ marginBottom: '24px' }}>
+            Built by the community,<br />
+            <span className="text-gradient">for the community</span>
+          </h2>
+
+          <p style={{
+            fontSize: '18px',
+            color: 'var(--text-muted)',
+            marginBottom: '48px',
+            lineHeight: 1.8
           }}>
-            <h3 style={{ marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 700 }}>Ready to contribute?</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.95rem' }}>Explore the codebase, pick up an issue, and start building with us.</p>
-            <a
-              href="https://github.com/Jenithpaul/PG-Studio"
-              target="_blank"
+            PG Studio is open source and free forever. We believe in building tools 
+            that empower developers. Join us in making database visualization accessible to everyone.
+          </p>
+
+          <div style={{ 
+            display: 'flex', 
+            gap: '16px', 
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            marginBottom: '64px'
+          }}>
+            <a 
+              href="https://github.com/Jenithpaul/PG-Studio" 
+              target="_blank" 
               rel="noopener noreferrer"
               className="btn btn-primary"
-              style={{ width: '100%', maxWidth: '280px', justifyContent: 'center', padding: '1rem', fontSize: '1.1rem' }}
             >
-              <Github size={20} />
-              GitHub Repository
+              <Star size={20} />
+              Star on GitHub
             </a>
-            <p style={{ marginTop: '1.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-              Read the <code>CONTRIBUTING.md</code> for setup instructions.
-            </p>
+            <a 
+              href="https://github.com/Jenithpaul/PG-Studio/issues" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="btn btn-secondary"
+            >
+              <GitPullRequest size={20} />
+              Contribute
+            </a>
           </div>
-        </div>
+
+          {/* Stats */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '32px',
+            padding: '40px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-primary)',
+            borderRadius: '20px'
+          }}>
+            {[
+              { value: '100%', label: 'Open Source' },
+              { value: 'MIT', label: 'License' },
+              { value: '∞', label: 'Possibilities' }
+            ].map((stat, i) => (
+              <div key={i}>
+                <div style={{ 
+                  fontSize: '32px', 
+                  fontWeight: 800, 
+                  marginBottom: '8px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }}>
+                  {stat.value}
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+                  {stat.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </section>
   );

@@ -1,0 +1,254 @@
+/* SettingsPage.css - Updated for Profile Input and Theme Switcher */
+.settings-page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-app);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-y: auto;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 24px 40px;
+    background-color: var(--bg-app);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.back-btn {
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.back-btn:hover {
+    background-color: var(--bg-card-hover);
+    color: var(--text-main);
+}
+
+.settings-header h1 {
+    font-size: 24px;
+    margin: 0;
+    font-weight: 600;
+}
+
+.settings-content {
+    padding: 40px;
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.settings-section {
+    margin-bottom: 48px;
+}
+
+.settings-section h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 24px;
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    margin-bottom: 12px;
+}
+
+.setting-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.setting-label {
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.setting-description {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.setting-input {
+    background: var(--bg-app);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 200px;
+}
+
+.setting-input:focus {
+    border-color: var(--accent-primary);
+}
+
+.setting-select {
+    background: var(--bg-app);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Theme Switcher in Settings */
+.theme-switcher {
+    display: flex;
+    gap: 12px;
+}
+
+.theme-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    opacity: 0.6;
+    transition: all 0.2s;
+}
+
+.theme-option.active {
+    opacity: 1;
+}
+
+.theme-preview {
+    width: 60px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid var(--border-subtle);
+    transition: border-color 0.2s;
+}
+
+.theme-option.active .theme-preview {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent-primary);
+}
+
+.theme-preview.light {
+    background-color: #ffffff;
+}
+
+.theme-preview.dark {
+    background-color: #1a1a1a;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-search);
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.toggle-slider {
+    background-color: var(--accent-primary);
+}
+
+input:checked+.toggle-slider:before {
+    transform: translateX(20px);
+}
+
+.about-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 40px;
+    background-color: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid var(--border-subtle);
+}
+
+.about-info .app-logo {
+    color: var(--accent-primary);
+    margin-bottom: 16px;
+}
+
+.about-info h3 {
+    margin: 0 0 8px;
+    font-size: 20px;
+}
+
+.about-info p {
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.copyright {
+    margin-top: 20px !important;
+    font-size: 12px;
+}

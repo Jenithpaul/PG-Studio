@@ -11,14 +11,17 @@ import ReactFlow, {
 } from 'reactflow';
 import type { Node, Edge } from 'reactflow';
 import 'reactflow/dist/style.css';
-import type { Schema, Table } from '@pg-studio/shared';
+import type { Schema } from '@pg-studio/shared';
 import { createLayoutEngine } from '@pg-studio/layout-engine';
 import type { LayoutAlgorithm, LayoutResult } from '@pg-studio/layout-engine';
 import type { ExportManager } from '@pg-studio/export-manager';
 import TableNode from './components/TableNode';
 import TopBar from './components/TopBar';
-import SearchBar, { type FilterOptions } from './components/SearchBar';
-import SidePanel from './components/SidePanel';
+import VisualizerSidebar from './components/VisualizerSidebar';
+import { SqlEditor } from './components/SqlEditor';
+import { ConnectionModal } from './components/ConnectionModal';
+import { SettingsPage } from './components/SettingsPage';
+import { TableDetailsPanel } from './components/TableDetailsPanel';
 import EdgeWithTooltip from './components/EdgeWithTooltip';
 import ExportDialog from './components/ExportDialog';
 import DropZone from './components/DropZone';
@@ -26,708 +29,351 @@ import Dashboard, { saveRecentProject, type Project } from './components/Dashboa
 import { LoadingOverlay } from './components/LoadingIndicator';
 import { ErrorDisplay, type ErrorInfo } from './components/ErrorDisplay';
 import { ToastContainer, useToast } from './components/Toast';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { UserProvider, useUser } from './contexts/UserContext';
 import { useKeyboardShortcuts, createCommonShortcuts } from './hooks/useKeyboardShortcuts';
 import { useElectronEvents } from './hooks/useElectronEvents';
+import { Onboarding } from './components/Onboarding';
 import './styles/themes.css';
 import { mockSchema } from './data/mockSchema';
 
 type DataSource = 'db' | 'folder' | 'demo';
-type AppView = 'dashboard' | 'visualizer';
+type AppView = 'dashboard' | 'visualizer' | 'settings';
+type VisualizerMode = 'graph' | 'code';
 
-const initialNodes: Node[] = [];
-const initialEdges: Edge[] = [];
+const nodeTypes = { table: TableNode };
+const edgeTypes = { custom: EdgeWithTooltip };
 
-// Create a single layout engine instance
-const layoutEngine = createLayoutEngine({
-  nodeSize: { width: 250, height: 150 },
-  spacing: { nodeSpacing: 100, layerSpacing: 150, edgeSpacing: 20 },
-});
+const AppContent = () => {
+  const { theme } = useTheme();
+  const { user } = useUser();
+  const { toasts, success, error: showError, removeToast } = useToast();
+  
+  // ReactFlow hooks
+  const { setCenter, fitView, zoomIn, zoomOut } = useReactFlow();
 
-// Create export manager instance - using html-to-image for DOM capture
-const exportManager: ExportManager = {
-  async exportAsPng(_canvas, options) {
-    // Import html-to-image dynamically
-    const { toPng } = await import('html-to-image');
-    
-    // Find the ReactFlow viewport element
-    const flowElement = document.querySelector('.react-flow') as HTMLElement;
-    if (!flowElement) {
-      throw new Error('ReactFlow element not found');
-    }
-    
-    try {
-      const dataUrl = await toPng(flowElement, {
-        backgroundColor: options.includeBackground ? options.backgroundColor : undefined,
-        width: options.width,
-        height: options.height,
-        pixelRatio: options.scale,
-        style: {
-          transform: 'scale(1)',
-          transformOrigin: 'top left'
-        }
-      });
-      
-      // Convert data URL to Blob
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
-      return blob;
-    } catch (error) {
-      console.error('PNG export failed:', error);
-      throw error;
-    }
-  },
-
-  async exportAsSvg(schema, layout, options) {
-    const { viewBox } = options;
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}">`;
-    
-    for (const node of layout.nodes) {
-      const table = schema.tables.find(t => t.id === node.id);
-      if (table) {
-        svg += `<rect x="${node.position.x}" y="${node.position.y}" width="${node.size.width}" height="${node.size.height}" fill="white" stroke="black"/>`;
-        svg += `<text x="${node.position.x + 10}" y="${node.position.y + 20}" font-family="Arial" font-size="14">${table.name}</text>`;
-      }
-    }
-    
-    svg += '</svg>';
-    return svg;
-  },
-
-  async exportAsJson(schema, layout) {
-    const exportData = {
-      version: '1.0.0',
-      timestamp: new Date().toISOString(),
-      schema,
-      layout
-    };
-    return JSON.stringify(exportData, null, 2);
-  },
-
-  async exportAsSql(schema, _options) {
-    let sql = `-- PostgreSQL Schema Export\n-- Generated on ${new Date().toISOString()}\n\n`;
-    
-    for (const table of schema.tables) {
-      sql += `CREATE TABLE "${table.name}" (\n`;
-      const columnSql = table.columns.map(column => {
-        let colSql = `  "${column.name}" ${column.type}`;
-        if (!column.isNullable) {
-          colSql += ' NOT NULL';
-        }
-        return colSql;
-      });
-      
-      const primaryKeys = table.columns.filter(c => c.isPrimaryKey);
-      if (primaryKeys.length > 0) {
-        const pkColumns = primaryKeys.map(c => `"${c.name}"`).join(', ');
-        columnSql.push(`  PRIMARY KEY (${pkColumns})`);
-      }
-      
-      sql += columnSql.join(',\n');
-      sql += '\n);\n\n';
-    }
-    
-    return sql;
-  },
-
-  async saveLayout(projectPath, layout) {
-    if (typeof localStorage !== 'undefined') {
-      const key = `pg-studio-layout-${projectPath.replace(/[^a-zA-Z0-9]/g, '_')}`;
-      localStorage.setItem(key, JSON.stringify({ projectPath, layout, savedAt: new Date().toISOString() }));
-    }
-  },
-
-  async loadLayout(projectPath) {
-    if (typeof localStorage !== 'undefined') {
-      const key = `pg-studio-layout-${projectPath.replace(/[^a-zA-Z0-9]/g, '_')}`;
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        const layoutData = JSON.parse(stored);
-        return layoutData.layout;
-      }
-    }
-    return null;
-  },
-
-  async autoSaveLayout(projectPath, layout) {
-    return this.saveLayout(projectPath, layout);
-  },
-
-  setAutoSave(_enabled, _delayMs) {
-    // No-op for simplified implementation
-  },
-
-  getProjectState() {
-    return { currentPath: null, recentProjects: [], bookmarks: [] };
-  },
-
-  getRecentProjects() {
-    return [];
-  },
-
-  getBookmarks() {
-    return [];
-  },
-
-  setCurrentProject(_path) {
-    // No-op for simplified implementation
-  },
-
-  getCurrentProject() {
-    return null;
-  },
-
-  addBookmark(_path, _name, _description) {
-    // No-op for simplified implementation
-  },
-
-  removeBookmark(_path) {
-    // No-op for simplified implementation
-  },
-
-  clearRecentProjects() {
-    // No-op for simplified implementation
-  },
-
-  removeFromRecent(_path) {
-    // No-op for simplified implementation
-  }
-};
-
-function FlowCanvas() {
-  const [nodes, setNodes] = useState<Node[]>(initialNodes);
-  const [edges, setEdges] = useState<Edge[]>(initialEdges);
-  const [error, setError] = useState<ErrorInfo | string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('Loading...');
-  const [loadingProgress, setLoadingProgress] = useState<number | undefined>(undefined);
+  // State
+  const [currentView, setCurrentView] = useState<AppView>('dashboard');
+  const [viewMode, setViewMode] = useState<VisualizerMode>('graph');
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
   const [schema, setSchema] = useState<Schema | null>(null);
   const [currentLayout, setCurrentLayout] = useState<LayoutResult | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
-  const [sidePanelOpen, setSidePanelOpen] = useState<boolean>(false);
-  const [selectedTableForPanel, setSelectedTableForPanel] = useState<Table | null>(null);
-  const [exportDialogOpen, setExportDialogOpen] = useState<boolean>(false);
-  const [currentView, setCurrentView] = useState<AppView>('dashboard');
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
-    showTables: true,
-    showViews: true,
-    showRelations: true,
-  });
-  const reactFlowInstance = useReactFlow();
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { toasts, removeToast, success, error: showError } = useToast();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
+  const [loadingProgress, setLoadingProgress] = useState<number | undefined>(undefined);
+  const [error, setError] = useState<ErrorInfo | null>(null);
+  
+  // Modals
+  const [connectionModalOpen, setConnectionModalOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [detailsPanelOpen, setDetailsPanelOpen] = useState(false);
 
-  // Search and filter logic
-  const { matchingTableIds } = useMemo(() => {
-    if (!schema) return { filteredTables: [], matchingTableIds: new Set<string>() };
+  // Refs
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-    let tables = schema.tables;
-    
-    const matching = new Set<string>();
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      tables = tables.filter(table => {
-        const matches = table.name.toLowerCase().includes(query) ||
-                       table.columns.some(col => col.name.toLowerCase().includes(query));
-        if (matches) {
-          matching.add(table.id);
-        }
-        return matches;
-      });
-    } else {
-      tables.forEach(table => matching.add(table.id));
-    }
-
-    return { filteredTables: tables, matchingTableIds: matching };
-  }, [schema, searchQuery, filterOptions]);
-
-  // Focus search input
-  const focusSearch = useCallback(() => {
-    const searchInput = document.querySelector('.search-input') as HTMLInputElement;
-    if (searchInput) {
-      searchInput.focus();
-      searchInput.select();
-    }
+  // Export Manager
+  const exportManager = useMemo(() => {
+    return {
+      saveLayout: (id: string, layout: any) => {
+        localStorage.setItem(`layout-${id}`, JSON.stringify(layout));
+      },
+      loadLayout: (id: string) => {
+        const stored = localStorage.getItem(`layout-${id}`);
+        return stored ? JSON.parse(stored) : null;
+      }
+    } as unknown as ExportManager;
   }, []);
 
-  // Handle zoom operations
-  const handleZoomToFit = useCallback(() => {
-    reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
-  }, [reactFlowInstance]);
-
-  const handleZoomIn = useCallback(() => {
-    reactFlowInstance.zoomIn({ duration: 200 });
-  }, [reactFlowInstance]);
-
-  const handleZoomOut = useCallback(() => {
-    reactFlowInstance.zoomOut({ duration: 200 });
-  }, [reactFlowInstance]);
-
-  // Handle export
-  const handleExport = useCallback(() => {
-    if (schema && schema.tables.length > 0) {
-      setExportDialogOpen(true);
+  const handleSave = useCallback(() => {
+    if (currentLayout) {
+      exportManager.saveLayout('current-project', currentLayout);
+      success('Saved', 'Layout saved locally');
     }
-  }, [schema]);
+  }, [currentLayout, exportManager, success]);
 
-  const handleCloseExportDialog = useCallback(() => {
-    setExportDialogOpen(false);
-  }, []);
-
-  // Handle layout changes
-  const handleAutoLayout = useCallback((algorithm: LayoutAlgorithm) => {
-    if (!schema) return;
-    const layoutResult = layoutEngine.applyLayout(schema, { algorithm });
-    applyLayoutToNodes(layoutResult, schema);
-  }, [schema]);
-
-  // Handle side panel toggle
-  const handleToggleSidePanel = useCallback(() => {
-    setSidePanelOpen(prev => !prev);
-  }, []);
-
-  // Handle escape key
-  const handleEscape = useCallback(() => {
-    if (exportDialogOpen) {
-      setExportDialogOpen(false);
-    } else if (sidePanelOpen) {
-      setSidePanelOpen(false);
-      setSelectedTableForPanel(null);
-    } else if (searchQuery) {
-      setSearchQuery('');
-    }
-  }, [exportDialogOpen, sidePanelOpen, searchQuery]);
-
-  // Handle folder open from menu
-  const handleMenuOpenFolder = useCallback(async (folderPath: string) => {
-    await handleVisualize('folder', folderPath);
-  }, []);
-
-  // Handle files open from menu
-  const handleMenuOpenFiles = useCallback(async (filePaths: string[]) => {
-    if (filePaths.length > 0) {
-      // For now, use the directory of the first file
-      const firstFile = filePaths[0];
-      const folderPath = firstFile.substring(0, firstFile.lastIndexOf('/') || firstFile.lastIndexOf('\\'));
-      await handleVisualize('folder', folderPath);
-    }
-  }, []);
-
-  // Handle layout from menu
-  const handleMenuLayout = useCallback((algorithm: string) => {
-    if (algorithm === 'hierarchical' || algorithm === 'force_directed' || algorithm === 'grid') {
-      handleAutoLayout(algorithm as LayoutAlgorithm);
-    }
-  }, [handleAutoLayout]);
-
-  // Set up keyboard shortcuts
+  // Shortcuts
   const shortcuts = useMemo(() => createCommonShortcuts({
-    onSearch: focusSearch,
-    onExport: handleExport,
-    onZoomToFit: handleZoomToFit,
-    onZoomIn: handleZoomIn,
-    onZoomOut: handleZoomOut,
-    onLayoutHierarchical: () => handleAutoLayout('hierarchical'),
-    onLayoutForceDirected: () => handleAutoLayout('force_directed'),
-    onLayoutGrid: () => handleAutoLayout('grid'),
-    onToggleSidePanel: handleToggleSidePanel,
-    onEscape: handleEscape,
-  }), [focusSearch, handleExport, handleZoomToFit, handleZoomIn, handleZoomOut, handleAutoLayout, handleToggleSidePanel, handleEscape]);
+    onSave: handleSave,
+    onFind: () => document.querySelector<HTMLInputElement>('.sidebar-search input')?.focus(),
+    onDelete: () => { if (selectedTables.length > 0) console.log('Delete selected not implemented'); },
+    onZoomIn: () => zoomIn(),
+    onZoomOut: () => zoomOut(),
+    onZoomToFit: () => fitView(),
+  }), [selectedTables, handleSave, zoomIn, zoomOut, fitView]);
 
-  useKeyboardShortcuts({ shortcuts, enabled: true });
+  useKeyboardShortcuts(shortcuts);
 
-  // Set up Electron menu event handlers
   useElectronEvents({
-    onOpenFolder: handleMenuOpenFolder,
-    onOpenFiles: handleMenuOpenFiles,
-    onExport: handleExport,
-    onSearch: focusSearch,
-    onZoomToFit: handleZoomToFit,
-    onZoomIn: handleZoomIn,
-    onZoomOut: handleZoomOut,
-    onLayout: handleMenuLayout,
-    onToggleSidePanel: handleToggleSidePanel,
+    onFileOpen: (path) => handleVisualize('folder', path),
   });
 
-  const nodeTypes = useMemo(() => ({ table: TableNode }), []);
-  const edgeTypes = useMemo(() => ({ default: EdgeWithTooltip }), []);
-
-  const onNodesChange = useCallback(
-    (changes: any) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    [setNodes]
-  );
-  const onEdgesChange = useCallback(
-    (changes: any) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [setEdges]
-  );
-
-  const applyLayoutToNodes = useCallback((layoutResult: LayoutResult, currentSchema: Schema) => {
-    setCurrentLayout(layoutResult);
-    
-    const newNodes: Node[] = layoutResult.nodes.map(posNode => {
-      const table = currentSchema.tables.find(t => t.id === posNode.id);
-      const isHighlighted = matchingTableIds.has(posNode.id) && searchQuery.trim() !== '';
-      const isDimmed = searchQuery.trim() !== '' && !matchingTableIds.has(posNode.id);
-      const isSelected = selectedTables.includes(posNode.id);
-      
-      return {
-        id: posNode.id,
-        type: 'table',
-        data: { 
-          label: table?.name || posNode.id, 
-          table: table,
-          isHighlighted,
-          isDimmed,
-          isSelected,
-          searchQuery: searchQuery.trim(),
-        },
-        position: posNode.position,
-      };
-    });
-
-    const newEdges: Edge[] = layoutResult.edges.map(posEdge => {
-      const isRelationVisible = filterOptions.showRelations;
-      const sourceMatches = matchingTableIds.has(posEdge.source);
-      const targetMatches = matchingTableIds.has(posEdge.target);
-      const shouldHighlight = searchQuery.trim() !== '' && (sourceMatches || targetMatches);
-      const shouldDim = searchQuery.trim() !== '' && !sourceMatches && !targetMatches;
-
-      const relation = currentSchema.relations.find(rel => 
-        rel.sourceTable === posEdge.source && rel.targetTable === posEdge.target
-      );
-
-      return {
-        id: posEdge.id,
-        source: posEdge.source,
-        target: posEdge.target,
-        sourceHandle: posEdge.sourceHandle,
-        targetHandle: posEdge.targetHandle,
-        type: 'default',
-        animated: shouldHighlight,
-        hidden: !isRelationVisible,
-        data: relation ? { relation } : undefined,
-        style: { 
-          stroke: shouldHighlight ? '#4CAF50' : shouldDim ? '#ccc' : '#555',
-          strokeWidth: shouldHighlight ? 2 : 1,
-          opacity: shouldDim ? 0.3 : 1,
-        },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: shouldHighlight ? '#4CAF50' : shouldDim ? '#ccc' : '#555',
-        },
-      };
-    });
-
-    setNodes(newNodes);
-    setEdges(newEdges);
-
-    setTimeout(() => {
-      reactFlowInstance.fitView({ padding: 0.2 });
-      
-      setTimeout(() => {
-        const reactFlowElement = document.querySelector('.react-flow__viewport');
-        if (reactFlowElement) {
-          const canvas = document.createElement('canvas');
-          const rect = reactFlowElement.getBoundingClientRect();
-          canvas.width = rect.width;
-          canvas.height = rect.height;
-          canvasRef.current = canvas;
-        }
-      }, 100);
-    }, 50);
-  }, [reactFlowInstance, matchingTableIds, searchQuery, selectedTables, filterOptions.showRelations]);
-
-  const handleVisualize = useCallback(async (source: DataSource, value: string) => {
-    setError(null);
-    setNodes([]);
-    setEdges([]);
-    setSchema(null);
-    setSearchQuery('');
-    setSelectedTables([]);
-    setSidePanelOpen(false);
-    setSelectedTableForPanel(null);
-    
-    // Set loading state with appropriate message
+  const handleVisualize = useCallback(async (source: DataSource, connection: string) => {
     setIsLoading(true);
-    setLoadingProgress(undefined);
-    setLoadingMessage(source === 'db' 
-      ? 'Connecting to database...' 
-      : 'Scanning project folder...'
-    );
-
-    if (source === 'demo') {
-      setLoadingMessage('Loading demo data...');
-      setLoadingProgress(0.5);
-      
-      // Simulate a small delay for better UX
-      setTimeout(() => {
-        setSchema(mockSchema as unknown as Schema); // Cast to handle potential minor type mismatches if any remain
-        const layoutResult = layoutEngine.applyHierarchicalLayout(mockSchema as unknown as Schema);
-        applyLayoutToNodes(layoutResult, mockSchema as unknown as Schema);
-        
-        setLoadingProgress(1);
-        setIsLoading(false);
-        success('Demo data loaded', 'Loaded sample e-commerce schema');
-      }, 500);
-      return;
-    }
+    setLoadingMessage('Analyzing schema...');
+    setError(null);
 
     try {
-      const endpoint = source === 'db' ? '/api/schema/db' : '/api/schema/project';
-      const body = source === 'db' ? { connectionString: value } : { projectPath: value };
+      await new Promise(resolve => setTimeout(resolve, 800));
+      let newSchema: Schema = mockSchema;
+      if (source === 'demo') {
+        newSchema = mockSchema;
+        setLoadingMessage('Generating layout...');
+      }
 
-      // Update loading message for fetch
-      setLoadingMessage(source === 'db' 
-        ? 'Fetching schema from database...' 
-        : 'Parsing SQL files...'
-      );
-      setLoadingProgress(0.3);
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+      setSchema(newSchema);
+      
+      const layoutEngine = createLayoutEngine();
+      const layoutResult = await layoutEngine.applyLayout(newSchema, {
+        algorithm: 'force-directed',
+        spacing: { nodeSpacing: 50, layerSpacing: 100, edgeSpacing: 20 }
       });
 
-      if (!response.ok) {
-        const err = await response.json();
-        // Handle structured error response
-        if (err.userMessage) {
-          throw err as ErrorInfo;
+      setCurrentLayout(layoutResult);
+
+      const newNodes: Node[] = layoutResult.nodes.map(node => ({
+        id: node.id,
+        type: 'table',
+        position: node.position,
+        zIndex: 10, // Ensure nodes are above edges
+        data: { 
+          table: newSchema.tables.find(t => t.id === node.id)!,
+          label: node.id
         }
-        throw new Error(err.error || `HTTP error! status: ${response.status}`);
-      }
+      }));
 
-      setLoadingMessage('Processing schema...');
-      setLoadingProgress(0.6);
+      const newEdges: Edge[] = layoutResult.edges.map(posEdge => ({
+        id: `e-${posEdge.source}-${posEdge.target}`,
+        source: posEdge.source,
+        target: posEdge.target,
+        type: 'smoothstep', // Curved edges that bend around obstacles
+        zIndex: 1,
+        animated: true,
+        style: { 
+          stroke: 'var(--accent-primary)', 
+          strokeWidth: 2,
+          strokeOpacity: 0.6,
+        },
+        markerEnd: { 
+          type: MarkerType.ArrowClosed,
+          color: 'var(--accent-primary)',
+          width: 20,
+          height: 20,
+        }
+      }));
 
-      const fetchedSchema: Schema = await response.json();
-      setSchema(fetchedSchema);
-
-      setLoadingMessage('Generating layout...');
-      setLoadingProgress(0.8);
-
-      const layoutResult = layoutEngine.applyHierarchicalLayout(fetchedSchema);
-      applyLayoutToNodes(layoutResult, fetchedSchema);
-
-      setLoadingProgress(1);
+      setNodes(newNodes);
+      setEdges(newEdges);
+      setCurrentView('visualizer');
       
-      // Show success toast
-      success(
-        'Schema loaded successfully',
-        `Found ${fetchedSchema.tables.length} tables and ${fetchedSchema.relations.length} relationships`
-      );
+      saveRecentProject({
+        id: `proj-${Date.now()}`,
+        name: source === 'demo' ? 'Demo Project' : connection.split(/[/\\]/).pop() || 'Project',
+        type: source,
+        connectionString: source === 'db' ? connection : undefined,
+        folderPath: source === 'folder' ? connection : undefined,
+        lastOpened: new Date().toISOString(),
+        tableCount: newSchema.tables.length
+      });
 
-    } catch (e: any) {
-      // Handle both structured errors and plain errors
-      if (e.userMessage) {
-        setError(e as ErrorInfo);
-        showError(e.userMessage, undefined, e.suggestedActions?.slice(0, 2));
-      } else {
-        const errorMessage = e.message || 'An unknown error occurred';
-        setError(errorMessage);
-        showError('Operation failed', errorMessage);
-      }
-      console.error(e);
+    } catch (err) {
+      console.error(err);
+      setError({
+        title: 'Visualization Failed',
+        message: err instanceof Error ? err.message : 'Unknown error occurred',
+        details: 'Check console for more details'
+      });
     } finally {
       setIsLoading(false);
-      setLoadingProgress(undefined);
+      setLoadingMessage('');
     }
-  }, [applyLayoutToNodes, success, showError]);
+  }, []);
 
-  // Handle dropped SQL files
-  const handleFilesDropped = useCallback(async (filePaths: string[]) => {
-    if (filePaths.length === 0) return;
-    
-    // Get the directory of the first file to use as the folder path
-    const firstFile = filePaths[0];
-    const separatorIndex = Math.max(firstFile.lastIndexOf('/'), firstFile.lastIndexOf('\\'));
-    const folderPath = separatorIndex > 0 ? firstFile.substring(0, separatorIndex) : firstFile;
-    
-    await handleVisualize('folder', folderPath);
-  }, [handleVisualize]);
+  const onNodesChange = useCallback((changes: any) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
+  const onEdgesChange = useCallback((changes: any) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
 
-  const handleNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    const table = schema?.tables.find(t => t.id === node.id);
-    if (table) {
-      setSelectedTableForPanel(table);
-      setSidePanelOpen(true);
+  // Unified table selection with zoom
+  const handleSelectTable = useCallback((tableId: string) => {
+    setSelectedTables([tableId]);
+    setNodes(nds => nds.map(node => ({
+      ...node,
+      data: { ...node.data, isSelected: node.id === tableId, isDimmed: node.id !== tableId }
+    })));
+    setDetailsPanelOpen(true);
+    
+    // Find node position and zoom to it
+    const targetNode = nodes.find(n => n.id === tableId);
+    if (targetNode) {
+      setCenter(targetNode.position.x + 150, targetNode.position.y + 100, { zoom: 1.2, duration: 800 });
     }
-    
-    setSelectedTables(prev => {
-      if (prev.includes(node.id)) {
-        return prev.filter(id => id !== node.id);
-      } else {
-        return [...prev, node.id];
-      }
-    });
-  }, [schema]);
+  }, [nodes, setCenter]);
 
-  const handleSearchChange = useCallback((query: string) => {
-    setSearchQuery(query);
+  const handleNodeClick = useCallback((_event: React.MouseEvent, node: Node) => { 
+    handleSelectTable(node.id);
+  }, [handleSelectTable]);
+  
+  const handlePaneClick = useCallback(() => {
+    setSelectedTables([]);
+    setDetailsPanelOpen(false);
+    setNodes(nds => nds.map(node => ({
+        ...node,
+        data: { ...node.data, isSelected: false, isDimmed: false }
+    })));
   }, []);
 
-  const handleFilterChange = useCallback((options: FilterOptions) => {
-    setFilterOptions(options);
+  const handleShare = useCallback(() => {
+    setExportDialogOpen(true);
   }, []);
 
-  const handleCloseSidePanel = useCallback(() => {
-    setSidePanelOpen(false);
-    setSelectedTableForPanel(null);
-  }, []);
-
-  // Dashboard handlers
+  // Handlers
   const handleOpenProject = useCallback((project: Project) => {
-    if (project.type === 'database' && project.connectionString) {
-      handleVisualize('db', project.connectionString);
-    } else if (project.type === 'folder' && project.folderPath) {
-      handleVisualize('folder', project.folderPath);
-    } else if (project.type === 'demo') {
-      handleVisualize('demo', 'Demo Data');
-    }
-    setCurrentView('visualizer');
+    if (project.type === 'database' && project.connectionString) handleVisualize('db', project.connectionString);
+    else if (project.type === 'folder' && project.folderPath) handleVisualize('folder', project.folderPath);
+    else if (project.type === 'demo') handleVisualize('demo', 'Demo Data');
   }, [handleVisualize]);
+
+  const handleTriggerImport = useCallback(() => {
+    if (window.electron) {
+      window.electron.openDialog().then((path: string | null) => { if (path) handleVisualize('folder', path); });
+    } else {
+      fileInputRef.current?.click();
+    }
+  }, [handleVisualize]);
+
+  const handleHiddenFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      showError("Browser Limitation", "Cannot scan local paths from browser. Please use Electron app.");
+    }
+  }, [showError]);
 
   const handleCreateNew = useCallback((type: 'database' | 'folder' | 'demo') => {
-    if (type === 'demo') {
-      handleVisualize('demo', 'Demo Data');
-      setCurrentView('visualizer');
-    } else if (type === 'database') {
-      // Switch to visualizer with default connection string
-      setCurrentView('visualizer');
-    } else if (type === 'folder') {
-      // Open folder dialog if in Electron
-      if (window.electron) {
-        window.electron.openDialog().then((path: string | null) => {
-          if (path) {
-            handleVisualize('folder', path);
-            setCurrentView('visualizer');
-          }
-        });
-      } else {
-        setCurrentView('visualizer');
-      }
-    }
-  }, [handleVisualize]);
+    if (type === 'demo') handleVisualize('demo', 'Demo Data');
+    else if (type === 'database') setConnectionModalOpen(true);
+    else if (type === 'folder') handleTriggerImport();
+  }, [handleVisualize, handleTriggerImport]);
 
-  const handleBackToDashboard = useCallback(() => {
-    setCurrentView('dashboard');
-  }, []);
+  const handleExecuteQuery = useCallback((query: string) => {
+    success('Query sent', 'Query execution is simulated in demo mode.');
+  }, [success]);
 
-  // Show Dashboard or Visualizer based on currentView
+  const handleAutoLayout = useCallback(async () => {
+    if (!schema) return;
+    setIsLoading(true);
+    const layoutEngine = createLayoutEngine();
+    const layoutResult = await layoutEngine.applyLayout(schema, {
+       algorithm: 'hierarchical',
+       spacing: { nodeSpacing: 60, layerSpacing: 100, edgeSpacing: 20 }
+    });
+    
+    setNodes(layoutResult.nodes.map(node => ({
+        id: node.id,
+        type: 'table',
+        position: node.position,
+        data: { table: schema.tables.find(t => t.id === node.id)!, label: node.id }
+    })));
+    
+    setTimeout(() => fitView({ duration: 800 }), 100);
+    setIsLoading(false);
+  }, [schema, fitView]);
+
+  const handleZoomToFit = useCallback(() => {
+    fitView({ duration: 800, padding: 0.2 });
+  }, [fitView]);
+
+  if (!user.hasOnboarded) {
+    return (
+      <div className={`app-root ${theme}`} style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+        <Onboarding />
+      </div>
+    );
+  }
+
+  if (currentView === 'settings') {
+    return <SettingsPage onClose={() => setCurrentView('dashboard')} />;
+  }
+
   if (currentView === 'dashboard') {
     return (
-      <Dashboard
-        onOpenProject={handleOpenProject}
-        onCreateNew={handleCreateNew}
-      />
+      <div className={`app-root ${theme}`} style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+        <Dashboard 
+          onOpenProject={handleOpenProject}
+          onCreateNew={handleCreateNew}
+          onOpenSettings={() => setCurrentView('settings')}
+        />
+        {error && <ErrorDisplay error={error} onClose={() => setError(null)} onRetry={() => setError(null)} />}
+        {isLoading && <LoadingOverlay message={loadingMessage} progress={loadingProgress} showProgress={false} />}
+        <ToastContainer toasts={toasts} onClose={removeToast} />
+        <input type="file" ref={fileInputRef} style={{ display: 'none' }} multiple onChange={handleHiddenFileInputChange} />
+      </div>
     );
   }
 
   return (
-    <DropZone onFilesDropped={handleFilesDropped} disabled={false}>
-      <div className="app-container">
+    <DropZone onFilesDropped={() => {}} disabled={false}>
+      <div className={`app-root ${theme}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', background: 'var(--bg-app)' }}>
+        <ConnectionModal isOpen={connectionModalOpen} onClose={() => setConnectionModalOpen(false)} onConnect={(url) => handleVisualize('db', url)} />
+        <input type="file" ref={fileInputRef} style={{ display: 'none' }} multiple onChange={handleHiddenFileInputChange} />
+
         <TopBar 
-          onVisualize={(source: DataSource, value: string) => {
-            handleVisualize(source, value);
-            // Save to recent projects
-            if (source === 'db') {
-              saveRecentProject({
-                id: `db-${Date.now()}`,
-                name: value.split('/').pop() || 'Database',
-                type: 'database',
-                connectionString: value,
-                lastOpened: new Date().toISOString(),
-                tableCount: schema?.tables.length
-              });
-            } else if (source === 'folder') {
-              saveRecentProject({
-                id: `folder-${Date.now()}`,
-                name: value.split(/[/\\]/).pop() || 'Project',
-                type: 'folder',
-                folderPath: value,
-                lastOpened: new Date().toISOString(),
-                tableCount: schema?.tables.length
-              });
-            }
-          }} 
-          onAutoLayout={handleAutoLayout}
-          onZoomToFit={handleZoomToFit}
-          onExport={handleExport}
-          hasSchema={schema !== null && schema.tables.length > 0}
-          onBackToDashboard={handleBackToDashboard}
+          onVisualize={handleVisualize} onAutoLayout={handleAutoLayout} onZoomToFit={handleZoomToFit}
+          onBackToDashboard={() => setCurrentView('dashboard')} onImport={handleTriggerImport} onSave={handleSave}
+          onShare={handleShare}
         />
-        <SearchBar
-          searchQuery={searchQuery}
-          onSearchChange={handleSearchChange}
-          filterOptions={filterOptions}
-          onFilterChange={handleFilterChange}
-          disabled={!schema || schema.tables.length === 0}
-          tableCount={schema?.tables.length || 0}
-          matchCount={matchingTableIds.size}
-        />
-        {error && (
-          <ErrorDisplay
-            error={error}
-            onClose={() => setError(null)}
-            onRetry={() => {
-              setError(null);
-              // Could trigger a retry here if we stored the last operation
-            }}
+        
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          <VisualizerSidebar 
+            tables={schema?.tables || []} selectedTableIds={selectedTables} onSelectTable={handleSelectTable}
+            searchQuery={searchQuery} onSearchChange={setSearchQuery} viewMode={viewMode} onViewModeChange={setViewMode}
           />
-        )}
-        {isLoading && (
-          <LoadingOverlay
-            message={loadingMessage}
-            progress={loadingProgress}
-            showProgress={loadingProgress !== undefined}
-          />
-        )}
-        <div className="react-flow-wrapper">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeClick={handleNodeClick}
-            fitView
-          >
-            <MiniMap />
-            <Controls />
-            <Background />
-          </ReactFlow>
+
+          <div className="react-flow-wrapper" style={{ flex: 1, position: 'relative', height: '100%' }}>
+            {viewMode === 'graph' ? (
+              <ReactFlow
+                nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
+                onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodeClick={handleNodeClick}
+                onPaneClick={handlePaneClick}
+                fitView proOptions={{ hideAttribution: true }} style={{ backgroundColor: 'var(--bg-app)' }}
+              >
+                <MiniMap style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '12px' }} />
+                <Controls style={{ background: 'var(--bg-card)', padding: '4px', borderRadius: '8px' }} />
+                <Background color="var(--border-subtle)" gap={24} size={1} />
+              </ReactFlow>
+            ) : (
+              <SqlEditor schema={schema} selectedTableIds={selectedTables} onExecuteQuery={handleExecuteQuery} />
+            )}
+            
+            {viewMode === 'graph' && detailsPanelOpen && selectedTables.length === 1 && (
+              <TableDetailsPanel 
+                table={schema?.tables.find(t => t.id === selectedTables[0])!} 
+                onClose={() => setDetailsPanelOpen(false)} 
+                onViewSql={() => { setViewMode('code'); setDetailsPanelOpen(false); }}
+              />
+            )}
+
+            {error && <ErrorDisplay error={error} onClose={() => setError(null)} onRetry={() => setError(null)} />}
+            {isLoading && <LoadingOverlay message={loadingMessage} progress={loadingProgress} showProgress={false} />}
+          </div>
         </div>
-        <SidePanel
-          isOpen={sidePanelOpen}
-          onClose={handleCloseSidePanel}
-          selectedTable={selectedTableForPanel}
-          schema={schema}
-        />
-        <ExportDialog
-          isOpen={exportDialogOpen}
-          onClose={handleCloseExportDialog}
-          schema={schema}
-          layout={currentLayout}
-          canvas={canvasRef.current}
-          exportManager={exportManager}
-        />
+        <ExportDialog isOpen={exportDialogOpen} onClose={() => setExportDialogOpen(false)} schema={schema} layout={currentLayout} canvas={canvasRef.current} exportManager={exportManager} />
         <ToastContainer toasts={toasts} onClose={removeToast} />
       </div>
     </DropZone>
   );
-}
+};
 
-function App() {
+const App = () => {
   return (
     <ThemeProvider>
-      <ReactFlowProvider>
-        <FlowCanvas />
-      </ReactFlowProvider>
+      <UserProvider>
+        <ReactFlowProvider>
+          <AppContent />
+        </ReactFlowProvider>
+      </UserProvider>
     </ThemeProvider>
   );
-}
+};
 
 export default App;

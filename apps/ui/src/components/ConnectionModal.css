@@ -1,0 +1,150 @@
+/* ConnectionModal.css - Enhanced Solid UI */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    /* Semi-transparent overlay */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+}
+
+.connection-modal {
+    background-color: var(--bg-card) !important;
+    /* Forces solid background */
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    width: 480px;
+    padding: 32px;
+    box-shadow: var(--shadow-lg);
+    color: var(--text-main);
+    animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(30px) scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    color: var(--text-main);
+    background-color: var(--bg-card-hover);
+}
+
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.modal-body label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.modal-body input {
+    background-color: var(--bg-search);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-family: var(--font-family-mono);
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.modal-body input:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    background-color: var(--bg-card);
+}
+
+.error-text {
+    color: var(--accent-error);
+    font-size: 13px;
+    margin-top: -8px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.btn-cancel,
+.btn-connect {
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    border: none;
+    transition: all 0.2s;
+}
+
+.btn-cancel {
+    background-color: var(--bg-search);
+    color: var(--text-main);
+    border: 1px solid var(--border-subtle);
+}
+
+.btn-cancel:hover {
+    background-color: var(--bg-card-hover);
+}
+
+.btn-connect {
+    background-color: var(--accent-primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.btn-connect:hover {
+    background-color: var(--accent-primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+}

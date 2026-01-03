@@ -1,209 +1,98 @@
-/* ========================================
-   TABLE NODE - SUPABASE STYLE
-   ======================================== */
-
+/* TableNode.css - Premium Schema Card Design */
 .table-node {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-lg);
-    min-width: 240px;
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    min-width: 300px;
     max-width: 320px;
+    font-family: var(--font-family-primary);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    color: var(--text-main);
     overflow: hidden;
-    transition: all var(--transition-base);
-    box-shadow: var(--shadow-sm);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .table-node:hover {
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-md);
+    border-color: var(--accent-primary);
+    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.15);
+    transform: translateY(-2px);
 }
 
 .table-node.selected {
-    border-color: var(--brand-primary);
-    box-shadow: 0 0 0 2px var(--brand-primary-muted), var(--shadow-md);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2), 0 8px 32px rgba(16, 185, 129, 0.2);
 }
 
 .table-node.highlighted {
-    border-color: var(--brand-primary);
-    box-shadow: var(--shadow-glow), var(--shadow-md);
+    border-color: var(--accent-primary);
+    transform: scale(1.02);
 }
 
 .table-node.dimmed {
-    opacity: 0.35;
+    opacity: 0.3;
+    filter: grayscale(0.4);
+    transform: scale(0.98);
 }
 
-/* Table Header */
+/* Header - Modern Gradient */
 .table-node-header {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-subtle);
     display: flex;
     align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-3) var(--space-4);
-    background: var(--bg-subtle);
-    border-bottom: 1px solid var(--border-muted);
+    gap: 12px;
 }
 
 .table-node-icon {
-    width: 20px;
-    height: 20px;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-overlay);
-    color: var(--text-secondary);
-    border-radius: var(--radius-sm);
-    flex-shrink: 0;
+    color: var(--accent-primary);
+    transition: all 0.2s;
+}
+
+.table-node:hover .table-node-icon {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.2) 100%);
+    transform: scale(1.05);
 }
 
 .table-node-icon svg {
-    width: 12px;
-    height: 12px;
+    width: 16px;
+    height: 16px;
 }
 
 .table-node-title {
     flex: 1;
-    font-size: var(--text-sm);
-    font-weight: var(--font-semibold);
-    color: var(--text-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.table-node-title.highlighted {
-    color: var(--brand-primary);
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-main);
+    letter-spacing: -0.2px;
 }
 
 .table-node-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 6px;
-    font-size: 10px;
-    font-weight: var(--font-medium);
-    color: var(--text-tertiary);
-    background: var(--bg-subtle);
-    border-radius: var(--radius-full);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    background: var(--bg-search);
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
 }
 
-/* Table Columns */
+/* Columns - Enhanced List */
 .table-node-columns {
-    padding: var(--space-2);
+    padding: 10px 0;
+    background-color: var(--bg-card);
     max-height: 280px;
     overflow-y: auto;
 }
 
-.table-column-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-2);
-    border-radius: var(--radius-sm);
-    transition: background-color var(--transition-fast);
-    position: relative;
-}
-
-.table-column-row:hover {
-    background: var(--bg-highlight);
-}
-
-/* Column Icons */
-.column-icon {
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.column-icon.pk {
-    color: var(--brand-warning);
-}
-
-.column-icon.fk {
-    color: var(--brand-info);
-}
-
-.column-icon svg {
-    width: 12px;
-    height: 12px;
-}
-
-/* Column Name */
-.column-name {
-    flex: 1;
-    font-size: var(--text-xs);
-    font-weight: var(--font-medium);
-    color: var(--text-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.column-name.pk {
-    font-weight: var(--font-semibold);
-}
-
-/* Column Type */
-.column-type {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--text-tertiary);
-    padding: 1px 4px;
-    background: var(--bg-subtle);
-    border-radius: var(--radius-sm);
-    white-space: nowrap;
-}
-
-/* Nullable indicator */
-.column-nullable {
-    font-size: 9px;
-    font-weight: var(--font-medium);
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Connection Handles */
-.table-node .react-flow__handle {
-    width: 8px;
-    height: 8px;
-    border: 2px solid var(--bg-surface);
-    transition: all var(--transition-fast);
-}
-
-.table-node .react-flow__handle-left {
-    left: -4px;
-}
-
-.table-node .react-flow__handle-right {
-    right: -4px;
-}
-
-.table-node .react-flow__handle.pk-handle {
-    background: var(--brand-warning);
-}
-
-.table-node .react-flow__handle.fk-handle {
-    background: var(--brand-info);
-}
-
-.table-node .react-flow__handle.default-handle {
-    background: var(--text-muted);
-}
-
-.table-node:hover .react-flow__handle {
-    transform: scale(1.2);
-}
-
-/* Search Highlight */
-.search-highlight {
-    background: var(--brand-primary-muted);
-    color: var(--brand-primary);
-    padding: 0 2px;
-    border-radius: 2px;
-}
-
-/* Scrollbar for columns */
 .table-node-columns::-webkit-scrollbar {
     width: 4px;
 }
@@ -213,10 +102,139 @@
 }
 
 .table-node-columns::-webkit-scrollbar-thumb {
-    background: var(--border-default);
-    border-radius: var(--radius-full);
+    background: var(--border-subtle);
+    border-radius: 2px;
 }
 
-.table-node-columns::-webkit-scrollbar-thumb:hover {
-    background: var(--border-hover);
+.table-column-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 8px 18px;
+    font-size: 13px;
+    height: 36px;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+}
+
+.table-column-row:hover {
+    background-color: var(--bg-card-hover);
+    border-left-color: var(--accent-primary);
+}
+
+.column-status-icon {
+    width: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.key-icon {
+    width: 16px;
+    height: 16px;
+    filter: drop-shadow(0 1px 2px rgba(251, 191, 36, 0.3));
+}
+
+.link-icon {
+    width: 16px;
+    height: 16px;
+    filter: drop-shadow(0 1px 2px rgba(96, 165, 250, 0.3));
+}
+
+.dot-icon {
+    width: 5px;
+    height: 5px;
+    background-color: var(--text-dim);
+    border-radius: 50%;
+    margin-left: 5px;
+    opacity: 0.5;
+}
+
+.column-name {
+    flex: 1;
+    color: var(--text-main);
+    font-weight: 500;
+    margin-right: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.column-name.primary {
+    color: #fbbf24;
+    font-weight: 700;
+}
+
+.column-type {
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    background: var(--bg-search);
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border-subtle);
+}
+
+.column-nullable {
+    margin-left: 6px;
+    color: var(--text-dim);
+    font-size: 11px;
+    font-style: italic;
+    opacity: 0.7;
+}
+
+/* React Flow Handles - Premium Style */
+.node-handle {
+    width: 10px !important;
+    height: 10px !important;
+    background: var(--bg-card) !important;
+    border: 2px solid var(--accent-primary) !important;
+    border-radius: 50%;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+}
+
+.table-node:hover .node-handle,
+.table-node.selected .node-handle {
+    opacity: 1;
+}
+
+.node-handle:hover {
+    background: var(--accent-primary) !important;
+    transform: scale(1.3);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.node-handle.left {
+    left: -5px !important;
+}
+
+.node-handle.right {
+    right: -5px !important;
+}
+
+/* Selection glow effect */
+.table-node.selected::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.1));
+    border-radius: 18px;
+    z-index: -1;
+    animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
